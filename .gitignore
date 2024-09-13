@@ -1,0 +1,5 @@
+out/
+thirdParty/assimp
+thirdParty/bullet3
+thirdParty/glm
+.vs/
