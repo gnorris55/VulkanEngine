@@ -15,7 +15,7 @@ class Scene {
 
 private:
 
-	Camera camera;
+	Camera *camera;
 
     float deltaTime = 0.0f;
     float lastTime = 0.0f;
@@ -24,8 +24,7 @@ private:
 
 public:
 
-    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, GLFWwindow * window) {
-        this->camera = Camera(glm::vec3(0.0f, 0.0f, 0.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, glm::vec3(0, 1, 0), 45.0f, 0.0f);
+    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera) : camera(camera) {
     }
 
     void setScene(GLFWwindow* window) {
@@ -65,39 +64,41 @@ public:
             glfwSetWindowShouldClose(window, true);
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            camera.forward_mv = true;
+            camera->forward_mv = true;
         else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE)
-            camera.forward_mv = false;
+            camera->forward_mv = false;
 
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            camera.back_mv = true;
+            camera->back_mv = true;
         else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_RELEASE)
-            camera.back_mv = false;
+            camera->back_mv = false;
 
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            camera.left_mv = true;
+            camera->left_mv = true;
         else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE)
-            camera.left_mv = false;
+            camera->left_mv = false;
 
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            camera.right_mv = true;
+            camera->right_mv = true;
         else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_RELEASE)
-            camera.right_mv = false;
+            camera->right_mv = false;
 
-        if (camera.forward_mv)
-            camera.ProcessKeyboard(FORWARD, movement_speed);
-        if (camera.back_mv)
-            camera.ProcessKeyboard(BACKWARD, movement_speed);
-        if (camera.left_mv)
-            camera.ProcessKeyboard(LEFT, movement_speed);
-        if (camera.right_mv)
-            camera.ProcessKeyboard(RIGHT, movement_speed);
+        if (camera->forward_mv)
+            camera->ProcessKeyboard(FORWARD, movement_speed);
+        if (camera->back_mv)
+            camera->ProcessKeyboard(BACKWARD, movement_speed);
+        if (camera->left_mv)
+            camera->ProcessKeyboard(LEFT, movement_speed);
+        if (camera->right_mv)
+            camera->ProcessKeyboard(RIGHT, movement_speed);
 
         return glm::vec3(0, 0, 0);
     }
 
 
-    Camera getCamera() {
+
+
+    Camera * getCamera() {
         return camera;
     }
 	

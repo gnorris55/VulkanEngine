@@ -30,8 +30,6 @@
 
 #undef max
 
-const uint32_t WINDOW_WIDTH = 800;
-const uint32_t WINDOW_HEIGHT = 600;
 
 //const std::string MODEL_PATH = RESOURCES_PATH"models/viking/viking_room.obj";
 //const std::string TEXTURE_PATH = RESOURCES_PATH"models/viking/viking_room.png";
@@ -105,18 +103,27 @@ struct lightingUniformBufferObject {
 	glm::vec3 lightPosition;
 };
 
-class TriangleApplication {
+
+class VulkanApplication {
 
 
 	public:
+
+		VulkanApplication(GLFWwindow *window, Scene *scene) : window(window), scene(scene){
+
+		}
+
 		void run() {
-			initWindow();
+			//initWindow();
 			initVulkan();
 			mainLoop();
 			cleanUp();
 		}
 
 	private:
+
+		uint32_t WINDOW_WIDTH = 800;
+		uint32_t WINDOW_HEIGHT = 600;
 
 		GLFWwindow* window;
 		VkInstance instance;
@@ -174,7 +181,7 @@ class TriangleApplication {
 		VkDeviceMemory depthImageMemory;
 		VkImageView depthImageView;
 
-		Scene scene = Scene(WINDOW_WIDTH, WINDOW_HEIGHT, window);
+		Scene *scene;
 	
 
 		struct QueueFamilyIndices {
@@ -237,7 +244,7 @@ class TriangleApplication {
 			while (!glfwWindowShouldClose(window)) {
 				
 				glfwPollEvents();
-				scene.setScene(window);
+				scene->setScene(window);
 				drawFrame();
 			}
 			vkDeviceWaitIdle(device);
@@ -336,7 +343,7 @@ class TriangleApplication {
 			UniformBufferObject ubo{};
 			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			//ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = scene.getCamera().GetViewMatrix();
+			ubo.view = scene->getCamera()->GetViewMatrix();
 			ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
 			ubo.proj[1][1] *= -1;
 
