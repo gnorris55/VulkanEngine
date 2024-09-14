@@ -109,9 +109,7 @@ class VulkanApplication {
 
 	public:
 
-		VulkanApplication(GLFWwindow *window, Scene *scene) : window(window), scene(scene){
-
-		}
+		VulkanApplication(GLFWwindow *window, Scene *scene) : window(window), scene(scene){}
 
 		void run() {
 			//initWindow();
@@ -182,7 +180,6 @@ class VulkanApplication {
 		VkImageView depthImageView;
 
 		Scene *scene;
-	
 
 		struct QueueFamilyIndices {
 			std::optional<uint32_t> graphicsFamily;
@@ -706,6 +703,13 @@ class VulkanApplication {
 			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			samplerLayoutBinding.pImmutableSamplers = nullptr;
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			VkDescriptorSetLayoutBinding uboLayoutBinding{};
+			uboLayoutBinding.binding = 2;
+			uboLayoutBinding.descriptorCount = 1;
+			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboLayoutBinding.pImmutableSamplers = nullptr;
+			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 			std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 			VkDescriptorSetLayoutCreateInfo layoutInfo{};

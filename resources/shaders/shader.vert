@@ -1,10 +1,9 @@
 #version 450
 
-layout(binding = 0) uniform UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
-} ubo;
+layout(binding = 0) uniform BlinnPhong {
+    vec3 lightPosition;
+    vec3 cameraPosition;
+} blinnPhnong;
 
 
 layout (location = 0) in vec3 inPosition;

@@ -9,23 +9,24 @@
 #include <iostream>
 
 #include <scene/camera.h>
-
+#include <scene/light.h>
 
 class Scene {
 
 private:
 
 	Camera *camera;
+    Light* light;
 
     float deltaTime = 0.0f;
     float lastTime = 0.0f;
     int frameCount = 0;
     float lastFrameTime = 0;
 
+
 public:
 
-    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera) : camera(camera) {
-    }
+    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera) : camera(camera) {}
 
     void setScene(GLFWwindow* window) {
         float currentTime = static_cast<float>(glfwGetTime());
