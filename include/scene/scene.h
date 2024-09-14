@@ -26,7 +26,9 @@ private:
 
 public:
 
-    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera) : camera(camera) {}
+    //TODO: probably going to be more lights
+    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera, Light *light) : camera(camera), light(light) {}
+
 
     void setScene(GLFWwindow* window) {
         float currentTime = static_cast<float>(glfwGetTime());
@@ -102,6 +104,11 @@ public:
     Camera * getCamera() {
         return camera;
     }
+    
+    Light * getLight() {
+        return light;
+    }
+
 	
 
 

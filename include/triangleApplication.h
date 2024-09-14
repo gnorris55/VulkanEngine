@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb/stb_image.h>
@@ -34,8 +34,8 @@
 //const std::string MODEL_PATH = RESOURCES_PATH"models/viking/viking_room.obj";
 //const std::string TEXTURE_PATH = RESOURCES_PATH"models/viking/viking_room.png";
 
-const std::string MODEL_PATH = RESOURCES_PATH"models/viking/viking_room.obj";
-const std::string TEXTURE_PATH = RESOURCES_PATH"models/viking/viking_room.png";
+const std::string MODEL_PATH = RESOURCES_PATH"models/backpack/backpack.obj";
+const std::string TEXTURE_PATH = RESOURCES_PATH"models/backpack/diffuse.jpg";
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -60,6 +60,7 @@ struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 texCoord;
+	glm::vec3 normal;
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription{};
@@ -70,8 +71,8 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -88,6 +89,12 @@ struct Vertex {
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, normal);
+
+
 		return attributeDescriptions;
 	}
 };
@@ -96,6 +103,8 @@ struct UniformBufferObject {
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
+	glm::vec4 lightPos;
+	glm::vec4 cameraPos;
 };
 
 struct lightingUniformBufferObject {
@@ -109,7 +118,9 @@ class VulkanApplication {
 
 	public:
 
-		VulkanApplication(GLFWwindow *window, Scene *scene) : window(window), scene(scene){}
+		VulkanApplication(GLFWwindow *window, Scene *scene) : window(window), scene(scene){
+
+		}
 
 		void run() {
 			//initWindow();
@@ -180,6 +191,7 @@ class VulkanApplication {
 		VkImageView depthImageView;
 
 		Scene *scene;
+	
 
 		struct QueueFamilyIndices {
 			std::optional<uint32_t> graphicsFamily;
@@ -342,6 +354,9 @@ class VulkanApplication {
 			//ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			ubo.view = scene->getCamera()->GetViewMatrix();
 			ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+			ubo.lightPos = glm::vec4(scene->getLight()->getPosition(), 1.0);
+			ubo.cameraPos = glm::vec4(scene->getCamera()->Position, 1.0);
+
 			ubo.proj[1][1] *= -1;
 
 			memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -703,13 +718,6 @@ class VulkanApplication {
 			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			samplerLayoutBinding.pImmutableSamplers = nullptr;
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-			VkDescriptorSetLayoutBinding uboLayoutBinding{};
-			uboLayoutBinding.binding = 2;
-			uboLayoutBinding.descriptorCount = 1;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uboLayoutBinding.pImmutableSamplers = nullptr;
-			uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 			std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 			VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -1142,6 +1150,15 @@ class VulkanApplication {
 					vertex.texCoord = {
 						attrib.texcoords[2 * index.texcoord_index + 0],
 						attrib.texcoords[2 * index.texcoord_index + 1]
+					};
+					
+					vertex.normal = {
+						
+						attrib.normals[3 * index.normal_index + 0],
+						attrib.normals[3 * index.normal_index + 1],
+						attrib.normals[3 * index.normal_index + 2]
+						
+						//1.0f, 1.0f, 1.0f
 					};
 
 					vertex.color = { 1.0f, 1.0f, 1.0f };

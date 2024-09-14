@@ -8,6 +8,8 @@
 #define GLM_SWIZZLE_XYZW
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+//#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -40,7 +42,8 @@ int main () {
 
 	initWindow();
 
-	Scene scene = Scene(WINDOW_WIDTH, WINDOW_HEIGHT, &camera);
+	Light light = Light(glm::vec3(0, 5, 0), glm::vec3(1.0, 0.0, 0.0));
+	Scene scene = Scene(WINDOW_WIDTH, WINDOW_HEIGHT, &camera, &light);
 
 	int texWidth, texHeight, texChannels;
 	unsigned char* pixels = stbi_load(RESOURCES_PATH"textures/texture.jpg", &texWidth, &texHeight, &texChannels, 0);
