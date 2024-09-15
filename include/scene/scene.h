@@ -10,6 +10,7 @@
 
 #include <scene/camera.h>
 #include <scene/light.h>
+#include <objects/poolBalls.h>
 
 class Scene {
 
@@ -17,6 +18,7 @@ private:
 
 	Camera *camera;
     Light* light;
+    PoolSet* poolBalls;
 
     float deltaTime = 0.0f;
     float lastTime = 0.0f;
@@ -27,7 +29,10 @@ private:
 public:
 
     //TODO: probably going to be more lights
-    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera, Light *light) : camera(camera), light(light) {}
+    Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera, Light *light) : camera(camera), light(light) {
+        poolBalls = new PoolSet(1, glm::vec3(0, 1, 0));
+
+    }
 
 
     void setScene(GLFWwindow* window) {

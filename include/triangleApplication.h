@@ -34,8 +34,8 @@
 //const std::string MODEL_PATH = RESOURCES_PATH"models/viking/viking_room.obj";
 //const std::string TEXTURE_PATH = RESOURCES_PATH"models/viking/viking_room.png";
 
-const std::string MODEL_PATH = RESOURCES_PATH"models/backpack/backpack.obj";
-const std::string TEXTURE_PATH = RESOURCES_PATH"models/backpack/diffuse.jpg";
+const std::string MODEL_PATH = RESOURCES_PATH"models/sphere/sphere.obj";
+const std::string TEXTURE_PATH = RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg";
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
