@@ -11,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb/stb_image.h>
 
-#include <tiny_obj_loader.h>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -27,6 +26,8 @@
 #include <array>
 
 #include <scene/scene.h>
+#include <dataStructures.h>
+#include <dataProcessing.h>
 
 #undef max
 
@@ -54,63 +55,6 @@ const std::vector<const char*> deviceExtensions = {
 	const bool enableValidationLayers = true;
 #endif
 
-
-
-struct Vertex {
-	glm::vec3 pos;
-	glm::vec3 color;
-	glm::vec2 texCoord;
-	glm::vec3 normal;
-
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
-
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, normal);
-
-
-		return attributeDescriptions;
-	}
-};
-
-struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-	glm::vec4 lightPos;
-	glm::vec4 cameraPos;
-};
-
-struct lightingUniformBufferObject {
-	glm::vec3 cameraPosition;
-	glm::vec3 lightPosition;
-};
 
 
 class VulkanApplication {
@@ -239,9 +183,11 @@ class VulkanApplication {
 			createTextureImage();
 			createTextureImageView();
 			createTextureSampler();
-			loadModel();
-			createVertexBuffer();
-			createIndexBuffer();
+			//Loader::loadModel(vertices, indices, MODEL_PATH);
+			//Loader::createVertexBuffer(vertexBuffer, vertexBufferMemory, vertices, device, commandPool, physicalDevice, graphicsQueue);
+			//Loader::createIndexBuffer(indexBuffer, indexBufferMemory, indices, device, commandPool, physicalDevice, graphicsQueue);
+			scene->loadModels(device, commandPool, physicalDevice, graphicsQueue);
+			//createIndexBuffer();
 			createUniformBuffers();
 			createDescriptorPool();
 			createDescriptorSets();
@@ -282,11 +228,7 @@ class VulkanApplication {
 
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-			vkDestroyBuffer(device, indexBuffer, nullptr);
-			vkFreeMemory(device, indexBufferMemory, nullptr);
-
-			vkDestroyBuffer(device, vertexBuffer, nullptr);
-			vkFreeMemory(device, vertexBufferMemory, nullptr);
+			scene->cleanUp(device);
 
 			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 				vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -377,7 +319,7 @@ class VulkanApplication {
 				throw std::runtime_error("failed to acquire swap chain image!");
 			}
 
-			updateUniformBuffer(currentFrame);
+			//updateUniformBuffer(currentFrame);
 
 			vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
@@ -582,6 +524,7 @@ class VulkanApplication {
 			return indices;
 
 		}
+
 		void createSwapChain() {
 			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -644,6 +587,7 @@ class VulkanApplication {
 				swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 			}
 		}
+
 		void createRenderPass() {
 			VkAttachmentDescription depthAttachment{};
 			depthAttachment.format = findDepthFormat();
@@ -1128,6 +1072,7 @@ class VulkanApplication {
 			endSingleTimeCommands(commandBuffer);
 		}
 
+		/*
 		void loadModel() {
 			tinyobj::attrib_t attrib;
 			std::vector<tinyobj::shape_t> shapes;
@@ -1169,7 +1114,7 @@ class VulkanApplication {
 
 			}
 		}
-
+		*/
 		void createVertexBuffer() {
 			VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -1299,7 +1244,7 @@ class VulkanApplication {
 				throw std::runtime_error("failed to allocate command buffers!");
 			}
 			VkMemoryRequirements memRequirements;
-			vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+			vkGetBufferMemoryRequirements(device, scene->getVertexBuffer(), &memRequirements);
 		}
 
 		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer & buffer, VkDeviceMemory & bufferMemory) {
@@ -1415,7 +1360,6 @@ class VulkanApplication {
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 			renderPassInfo.pClearValues = clearValues.data();
 
-
 			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
@@ -1433,16 +1377,10 @@ class VulkanApplication {
 			scissor.extent = swapChainExtent;
 			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			VkBuffer vertexBuffers[] = { vertexBuffer };
-			VkDeviceSize offsets[] = { 0 };
-
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
+			//updateUniformBuffer(currentFrame);
+			scene->addDrawingBuffers(commandBuffer, pipelineLayout, descriptorSets, currentFrame, swapChainExtent, uniformBuffersMapped);
 			vkCmdEndRenderPass(commandBuffer);
+
 
 			if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 				throw std::runtime_error("failed to record command buffer!");

@@ -6,6 +6,7 @@ layout (binding = 0) uniform UniformBufferObject {
     mat4 proj;
     vec4 lightPos;
     vec4 cameraPos;
+    mat4 instanceTransform[16];
 } ubo;
 
 layout (location = 0) in vec3 inPosition;
@@ -21,12 +22,12 @@ layout(location = 4) out vec3 lightPos;
 layout(location = 5) out vec3 cameraPos;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    gl_Position = ubo.proj * ubo.view * ubo.instanceTransform[gl_InstanceIndex] * vec4(inPosition, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
-    fragPos = inPosition;
+    fragPos = vec3(ubo.instanceTransform[gl_InstanceIndex] * vec4(inPosition, 1));
     lightPos = ubo.lightPos.xyz;
     cameraPos = ubo.cameraPos.xyz;
-    normal = mat3(transpose(inverse(ubo.model)))* inNormal;
+    normal = mat3(transpose(inverse(ubo.instanceTransform[gl_InstanceIndex])))* inNormal;
 
 }
