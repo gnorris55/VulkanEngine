@@ -11,67 +11,73 @@
 #include <scene/camera.h>
 #include <scene/light.h>
 #include <objects/poolBalls.h>
+#include <objects/plane.h>
+#include <scene/physicsManager.h>
 
 class Scene {
-
-
 
 public:
 
     //TODO: probably going to be more lights
     Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera, Light *light) : camera(camera), light(light) {
-        poolBalls = new PoolSet(1, glm::vec3(0, 1, 0));
-
+        poolSet = new PoolSet(15, glm::vec3(0, 2, 0));
+        addPhysicsObjects();
     }
 
+
     ~Scene() {
-        delete poolBalls;
+        delete poolSet;
     }
 
     void loadModels(VkDevice& device, VkCommandPool& commandPool, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue) {
-        poolBalls->loadModel(device, commandPool, physicalDevice, graphicsQueue);
+        poolSet->loadModel(device, commandPool, physicalDevice, graphicsQueue);
+        plane.loadModel(device, commandPool, physicalDevice, graphicsQueue);
     }
 
     // where we add our buffers for our objects
-    void addDrawingBuffers(VkCommandBuffer &commandBuffer, VkPipelineLayout &pipelineLayout, std::vector<VkDescriptorSet> &descriptorSets, uint32_t &currentFrame, VkExtent2D swapChainExtent, std::vector<void*>& uniformBuffersMapped) {
+    void draw(VkCommandBuffer &commandBuffer, VkPipelineLayout &pipelineLayout, std::vector<VkDescriptorSet> &descriptorSets, uint32_t &currentFrame, VkExtent2D swapChainExtent, std::vector<void*>& uniformBuffersMapped) {
 
-        VkBuffer vertexBuffers[] = { poolBalls->vertexBuffer, poolBalls->vertexBuffer};
-        //VkBuffer indexBuffers[] = { indexBuffer };
-        VkDeviceSize offsets[] = { 0 };
-
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, poolBalls->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-                
-        updateUniformBuffer(swapChainExtent, uniformBuffersMapped, currentFrame, glm::vec3(0, 0, 0));
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(poolBalls->indices.size()), 15, 0, 0, 0);
-
-        //updateUniformBuffer(swapChainExtent, uniformBuffersMapped, currentFrame, glm::vec3(0, 3, 0));
-        //vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(poolBalls->indices.size()), 1, 0, 0, 0);
-        //std::cout << poolBalls->indices.size() << std::endl;
-    }
-    
-    void updateUniformBuffer(VkExtent2D swapChainExtent, std::vector<void*> &uniformBuffersMapped, uint32_t currentImage, glm::vec3 position) {
-
-        static auto startTime = std::chrono::high_resolution_clock::now();
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::translate(glm::mat4(1.0f), position);
-        ubo.model = glm::rotate(ubo.model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        //ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.model = glm::mat4(1.0f);
         ubo.view = camera->GetViewMatrix();
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+        ubo.proj = camera->GetProjection();
         ubo.lightPos = glm::vec4(light->getPosition(), 1.0);
         ubo.cameraPos = glm::vec4(camera->Position, 1.0);
+
+        // TODO: change vertex buffer implementation, opengl way is slow
+        VkBuffer vertexBuffers[] = { poolSet->vertexBuffer};
+        VkBuffer vertexBuffers2[] = { plane.vertexBuffer};
+
+        VkDeviceSize offsets[] = {0};
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        updateUniforms(ubo, swapChainExtent, uniformBuffersMapped, currentFrame, glm::vec3(0, 0, 0));
+
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, poolSet->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(poolSet->indices.size()), 16, 0, 0, 0);
+
+        //updatePlaneUniforms(ubo, swapChainExtent, uniformBuffersMapped, currentFrame, glm::vec3(0, 0, 0));
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, plane.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(plane.indices.size()), 1, 0, 0, 16);
+
+
+    }
+
+    void updateUniforms(UniformBufferObject ubo, VkExtent2D swapChainExtent, std::vector<void*> &uniformBuffersMapped, uint32_t currentImage, glm::vec3 position) {
+
+                 
         glm::mat4 model = glm::mat4(1.0f);
-        for(int i = 0; i < 15; i++)
-            ubo.instanceTransform[i] = glm::translate(model, glm::vec3(i*2, 0, 0));
+        for (int i = 0; i < poolSet->poolBalls.size(); i++) {
+            PoolBall poolBall = poolSet->poolBalls[i];
 
+            ubo.instanceTransform[i] = poolBall.getTransform();
 
+        }
+        ubo.instanceTransform[15] = poolSet->cueBall->getTransform();
+        ubo.instanceTransform[16] = plane.getTransform();
         ubo.proj[1][1] *= -1;
 
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -82,11 +88,63 @@ public:
         deltaTime = currentTime - lastTime;
 
         getFPS(frameCount, currentTime);
+
+        //update physics
+        simulatePhysics(currentTime, 0.01);
+
+
         processInput(window);
 
         lastTime = currentTime;
 
         //std::cout << glm::to_string(camera.Position) << std::endl;
+    }
+
+
+    void cleanUp(VkDevice& device) {
+
+        poolSet->cleanUp(device);
+        plane.cleanUp(device);
+    }
+
+
+    Camera * getCamera() {
+        return camera;
+    }
+    
+    Light * getLight() {
+        return light;
+    }
+
+    VkBuffer getVertexBuffer() {
+        return poolSet->vertexBuffer;
+    }
+    
+    VkBuffer getPlaneVertexBuffer() {
+        return plane.vertexBuffer;
+    }
+
+private:
+
+    PhysicsManager physicsManager = PhysicsManager();
+	Camera *camera;
+    Light* light;
+    PoolSet* poolSet;
+    Plane plane = Plane(glm::vec3(0, 1, 0), glm::vec3(0.0, 1, 0));
+
+    float deltaTime = 0.0f;
+    float lastTime = 0.0f;
+    int frameCount = 0;
+    float lastFrameTime = 0;
+    int nbFrames = 0;
+    float accumulator = 0.0f;
+
+    void addPhysicsObjects() {
+        for (int i = 0; i < poolSet->numBalls; i++) {
+            physicsManager.addObject(&(poolSet->poolBalls[i]));
+        }
+        physicsManager.addObject(poolSet->cueBall);
+        physicsManager.addObject(&(plane));
     }
 
     void getFPS(int& frameCount, float currentTime) {
@@ -105,39 +163,37 @@ public:
         }
     }
 
-    void cleanUp(VkDevice& device) {
+    
+    void simulatePhysics(float time, float freq) {
 
-        poolBalls->cleanUp(device);
-    }
+        nbFrames++;
+        float deltaTime = time - lastTime;
+        //lastTime = time;
+        accumulator += deltaTime;
+        //int count = 0;
+        //std::cout << "count: " << count++ << "\n";
+        while (accumulator >= freq) {
+            //std::cout << "acc: " << accumulator << "\n";
+            physicsManager.simulationLoop(freq);
 
-
-    Camera * getCamera() {
-        return camera;
+            nbFrames = 0;
+            accumulator -= freq;
+        }
     }
     
-    Light * getLight() {
-        return light;
-    }
 
-    VkBuffer getVertexBuffer() {
-        return poolBalls->vertexBuffer;
-    }
 
-private:
-
-	Camera *camera;
-    Light* light;
-    PoolSet* poolBalls;
-
-    float deltaTime = 0.0f;
-    float lastTime = 0.0f;
-    int frameCount = 0;
-    float lastFrameTime = 0;
     glm::vec3 processInput(GLFWwindow* window)
     {
 
        
         float movement_speed = deltaTime * 5.0;
+        
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            poolSet->cueBall->addForce(glm::vec3(0, 0, 25));
+            std::cout << "force" << std::endl;
+        }
+
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
 

@@ -33,7 +33,7 @@ float lastY = WINDOW_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 glm::vec3 lightPos = glm::vec3(0, 5, 0);
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, glm::vec3(0, 1, 0), 45.0f, 0.0f);
+Camera camera(glm::vec3(0.0f, 15.0f, -15.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, glm::vec3(0, 1, 0), 45.0f, 0.0f);
 
 GLFWwindow* window;
 

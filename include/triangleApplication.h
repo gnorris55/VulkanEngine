@@ -37,6 +37,8 @@
 
 const std::string MODEL_PATH = RESOURCES_PATH"models/sphere/sphere.obj";
 const std::string TEXTURE_PATH = RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg";
+//const std::string TEXTURE_PATH = RESOURCES_PATH"models/plane/poolSurface.jpg";
+
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -1245,6 +1247,7 @@ class VulkanApplication {
 			}
 			VkMemoryRequirements memRequirements;
 			vkGetBufferMemoryRequirements(device, scene->getVertexBuffer(), &memRequirements);
+			vkGetBufferMemoryRequirements(device, scene->getPlaneVertexBuffer(), &memRequirements);
 		}
 
 		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer & buffer, VkDeviceMemory & bufferMemory) {
@@ -1378,7 +1381,7 @@ class VulkanApplication {
 			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 			//updateUniformBuffer(currentFrame);
-			scene->addDrawingBuffers(commandBuffer, pipelineLayout, descriptorSets, currentFrame, swapChainExtent, uniformBuffersMapped);
+			scene->draw(commandBuffer, pipelineLayout, descriptorSets, currentFrame, swapChainExtent, uniformBuffersMapped);
 			vkCmdEndRenderPass(commandBuffer);
 
 

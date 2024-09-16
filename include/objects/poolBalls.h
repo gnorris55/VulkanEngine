@@ -9,19 +9,54 @@
 #include <glm/gtx/string_cast.hpp>
 #include <dataStructures.h>
 #include <dataProcessing.h>
+#include <objects/entity.h>
 
 
-class PoolBall {
+class PoolBall : public Entity {
 
 private:
 
 	glm::mat4 transformMatrix = glm::mat4(1.0f);
 
 public:
-	PoolBall(glm::vec3 initialPosition) {
-		this->transformMatrix = glm::translate(transformMatrix, initialPosition);
-		std::cout << "STARTING POSITION!: " << glm::to_string(initialPosition) << std::endl;
+	PoolBall(glm::vec3 initialPosition) : Entity(initialPosition)  {
+		//std::cout << "STARTING POSITION!: " << glm::to_string(initialPosition) << std::endl;
 	}
+
+	void createRigidBody() override {
+		btCollisionShape* fallShape = new btSphereShape(1.0);  // Box of size 1x1x1
+		btDefaultMotionState* fallMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), LMath::glmToBt(position)));
+		btScalar mass = 1;
+		btVector3 fallInertia(0, 0, 0);
+		fallShape->calculateLocalInertia(mass, fallInertia);
+		btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
+		this->rigidBody = new btRigidBody(fallRigidBodyCI);
+	}
+
+};
+
+class CueBall : public PoolBall {
+public:
+	CueBall(glm::vec3 initialPosition) : PoolBall(initialPosition) {
+		//std::cout << "STARTING POSITION!: " << glm::to_string(initialPosition) << std::endl;
+	}
+
+	void addForce(glm::vec3 force) {
+		rigidBody->applyCentralForce(LMath::glmToBt(force));
+
+	}
+	void createRigidBody() override {
+		btCollisionShape* fallShape = new btSphereShape(1.0);  // Box of size 1x1x1
+		btDefaultMotionState* fallMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), LMath::glmToBt(position)));
+		btScalar mass = 1;
+		btVector3 fallInertia(0, 0, 0);
+		fallShape->calculateLocalInertia(mass, fallInertia);
+		btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
+		this->rigidBody = new btRigidBody(fallRigidBodyCI);
+		rigidBody->setActivationState(DISABLE_DEACTIVATION);
+	}
+
+private:
 
 };
 
@@ -31,25 +66,38 @@ class PoolSet {
 private:
 
 	const std::string MODEL_PATH = RESOURCES_PATH"models/sphere/sphere.obj";
-	//const std::string TEXTURE_PATH = RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg";
-	int numBalls;
-	glm::vec3 center;
-	std::vector<PoolBall> poolBalls;
-
 	
 
+	//const std::string TEXTURE_PATH = RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg";
+	glm::vec3 center;
 
-	void setInitialPositions() {
+	void setInitialPositions(std::vector<glm::vec3> positions) {
 		for (int i = 0; i < numBalls; i++) {
-			poolBalls.push_back(PoolBall(center));
+			poolBalls.push_back(PoolBall(center+positions[i]));
 		}
 	}
 
+	std::vector<glm::vec3> generateTrianglePositions(int rows) {
+		std::vector<glm::vec3> positions;
+		float radius = 1.0f;
+		float spacing = 2.0f; // Distance between centers of balls
+		float verticalOffset = sqrt(3.0f); // Vertical offset between rows
 
+		for (int row = 0; row < rows; ++row) {
+			float y = -row * verticalOffset; // Vertical position of the row
+			int numBallsInRow = row + 1;
 
-	//void loadModel() {
+			// Horizontal starting position, centered
+			float startX = -((numBallsInRow - 1) * spacing) / 2.0f;
 
-	//}
+			for (int i = 0; i < numBallsInRow; ++i) {
+				float x = startX + i * spacing;
+				positions.push_back(glm::vec3(x, 0.0f, -y)); // Position in 2D (x, y), Z = 0
+			}
+		}
+
+		return positions;
+	}
 
 public:
 	VkBuffer vertexBuffer;
@@ -59,9 +107,15 @@ public:
 	
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	std::vector<PoolBall> poolBalls;
+	CueBall *cueBall;
+	
+	int numBalls;
 
 	PoolSet(int numBalls, glm::vec3 center = glm::vec3(0.0f, 0.0f, 0.0f)) : numBalls(numBalls), center(center) {
-		setInitialPositions();
+		std::vector<glm::vec3> initialPositions = generateTrianglePositions(5);
+		setInitialPositions(initialPositions);
+		cueBall = new CueBall(center + glm::vec3(0, 0, -5));
 	}
 
 	void cleanUp(VkDevice &device) {

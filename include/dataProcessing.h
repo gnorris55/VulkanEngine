@@ -6,6 +6,9 @@
 
 #include <tiny_obj_loader.h>
 #include <dataStructures.h>
+#include <btBulletDynamicsCommon.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
 namespace Loader {
@@ -178,4 +181,13 @@ namespace Loader {
 		throw std::runtime_error("failed to find suitable memory type!");
 	}
 }
+
+namespace LMath {
+
+	btVector3 glmToBt(glm::vec3 vector) {
+		return btVector3(vector.x, vector.y, vector.z);
+	}
+
+}
+
 #endif

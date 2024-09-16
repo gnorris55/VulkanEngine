@@ -7,7 +7,7 @@ struct UniformBufferObject {
 	glm::mat4 proj;
 	glm::vec4 lightPos;
 	glm::vec4 cameraPos;
-	glm::mat4 instanceTransform[16];
+	glm::mat4 instanceTransform[17];
 };
 
 struct Vertex {
