@@ -21,6 +21,8 @@ layout(location = 3) out vec3 fragPos;
 layout(location = 4) out vec3 lightPos;
 layout(location = 5) out vec3 cameraPos;
 
+layout(location = 6) out flat uint instanceIndex;
+
 void main() {
     gl_Position = ubo.proj * ubo.view * ubo.instanceTransform[gl_InstanceIndex] * vec4(inPosition, 1.0);
     fragColor = inColor;
@@ -29,5 +31,6 @@ void main() {
     lightPos = ubo.lightPos.xyz;
     cameraPos = ubo.cameraPos.xyz;
     normal = mat3(transpose(inverse(ubo.instanceTransform[gl_InstanceIndex])))* inNormal;
+    instanceIndex = gl_InstanceIndex;
 
 }

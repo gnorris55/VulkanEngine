@@ -1,6 +1,6 @@
 #version 450
 
-layout (binding = 1) uniform sampler2D texSampler;
+layout (binding = 1) uniform sampler2DArray texSampler;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -8,6 +8,8 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 fragPos;
 layout(location = 4) in vec3 lightPos;
 layout(location = 5) in vec3 cameraPos;
+
+layout(location = 6) in flat int instanceIndex;
 
 layout(location = 0) out vec4 outColor;
 
@@ -31,8 +33,7 @@ void main() {
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * lightColor;
-
-    vec3 result = (ambient + diffuse + specular) *  texture(texSampler, fragTexCoord).rgb;
-
+    
+    vec3 result = (ambient + diffuse + specular) *  texture(texSampler, vec3(fragTexCoord.rg, instanceIndex)).rgb; 
     outColor = vec4(result, 1.0);
 }

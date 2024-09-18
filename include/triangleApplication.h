@@ -37,6 +37,25 @@
 
 const std::string MODEL_PATH = RESOURCES_PATH"models/sphere/sphere.obj";
 const std::string TEXTURE_PATH = RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg";
+const std::string TEXTURE_PATH2 = RESOURCES_PATH"models/sphere/poolBallTextures/Ball10.jpg";
+std::vector<std::string> texturePaths = {
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball1.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball10.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball2.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball8.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball3.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball11.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball4.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball12.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball5.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball13.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball6.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball14.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball7.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/Ball15.jpg",
+	RESOURCES_PATH"models/sphere/poolBallTextures/BallCue.jpg"
+};
 //const std::string TEXTURE_PATH = RESOURCES_PATH"models/plane/poolSurface.jpg";
 
 
@@ -586,7 +605,7 @@ class VulkanApplication {
 			swapChainImageViews.resize(swapChainImages.size());
 
 			for (size_t i = 0; i < swapChainImages.size(); i++) {
-				swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+				swapChainImageViews[i] = createImageView(swapChainImages[i], VK_IMAGE_VIEW_TYPE_2D, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 			}
 		}
 
@@ -713,13 +732,13 @@ class VulkanApplication {
 
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 			vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-			auto bindingDescription = Vertex::getBindingDescription();
+			VkVertexInputBindingDescription bindingDescriptions = Vertex::getBindingDescription();
+		
 			auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
 			vertexInputInfo.vertexBindingDescriptionCount = 1;
 			vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-			vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+			vertexInputInfo.pVertexBindingDescriptions = &bindingDescriptions;
 			vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 			VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -846,7 +865,7 @@ class VulkanApplication {
 		void createDepthResources() {
 			VkFormat depthFormat = findDepthFormat();
 			createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-			depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+			depthImageView = createImageView(depthImage, VK_IMAGE_VIEW_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 		}
 
 		VkFormat findDepthFormat() {
@@ -878,37 +897,59 @@ class VulkanApplication {
 		}
 
 		void createTextureImage() {
-			int texWidth, texHeight, texChannels;
-			stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-			VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-			if (!pixels) {
-				throw std::runtime_error("failed to load texture image!");
-			}
+			int texWidth, texHeight, texChannels;
+			std::vector<stbi_uc* > pixels;
+
+			generatePixels(texturePaths, pixels, texWidth, texHeight, texChannels);
+			
+			std::cout << pixels.size() << std::endl;
+			// multiplying the imageSize (the buffer size) by two because we now have two textures
+			VkDeviceSize imageSize = texWidth * texHeight * 4;
+			VkDeviceSize totalSize = imageSize * pixels.size();
 
 			VkBuffer stagingBuffer;
 			VkDeviceMemory stagingBufferMemory;
-			createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+			createBuffer(totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 			void* data;
-			vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
-			memcpy(data, pixels, static_cast<size_t>(imageSize));
+			// data is a pointer filled with the address in the application's memory space where the GPU memory is mapped
+			vkMapMemory(device, stagingBufferMemory, 0, totalSize, 0, &data);
+			// we are mapping our pixel data to the staging buffer
+			for (int i = 0; i < pixels.size(); i++)
+				memcpy((char *)data+(imageSize*i), pixels[i], static_cast<size_t>(imageSize));
+
 			vkUnmapMemory(device, stagingBufferMemory);
 
-			stbi_image_free(pixels);
+			for (auto pixel : pixels) 
+				stbi_image_free(pixel);
+			
+			createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory, pixels.size());
 
-			createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
-
-			transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-			transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, pixels.size());
+			copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), pixels.size());
+			transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, pixels.size());
 
 			vkDestroyBuffer(device, stagingBuffer, nullptr);
 			vkFreeMemory(device, stagingBufferMemory, nullptr);
 		}
+
+		void generatePixels(std::vector<std::string> texturePaths, std::vector<stbi_uc* > &pixels, int &texWidth, int &texHeight, int &texChannels) {
+
+			for (const std::string texturePath : texturePaths) {
+				stbi_uc* currPixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+				VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+				if (!currPixels) {
+					throw std::runtime_error("failed to load texture image!");
+				}
+				pixels.push_back(currPixels);
+			}
+		}
 		
 		void createTextureImageView() {
-			textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+			textureImageView = createImageView(textureImage, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, texturePaths.size());
 		}
 
 		void createTextureSampler() {
@@ -941,17 +982,17 @@ class VulkanApplication {
 			}
 		}
 
-		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+		VkImageView createImageView(VkImage image, VkImageViewType type, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t layerCount = 1) {
 			VkImageViewCreateInfo viewInfo{};
 			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			viewInfo.image = image;
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.viewType = type;
 			viewInfo.format = format;
 			viewInfo.subresourceRange.aspectMask = aspectFlags;
 			viewInfo.subresourceRange.baseMipLevel = 0;
 			viewInfo.subresourceRange.levelCount = 1;
 			viewInfo.subresourceRange.baseArrayLayer = 0;
-			viewInfo.subresourceRange.layerCount = 1;
+			viewInfo.subresourceRange.layerCount = layerCount;
 
 			VkImageView imageView;
 			if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
@@ -960,7 +1001,7 @@ class VulkanApplication {
 
 			return imageView;
 		}
-		void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+		void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, uint32_t layerCount = 1) {
 			VkImageCreateInfo imageInfo{};
 			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -968,13 +1009,14 @@ class VulkanApplication {
 			imageInfo.extent.height = height;
 			imageInfo.extent.depth = 1;
 			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
+			imageInfo.arrayLayers = layerCount;
 			imageInfo.format = format;
 			imageInfo.tiling = tiling;
 			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageInfo.usage = usage;
 			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			
 
 			if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 				throw std::runtime_error("failed to create image!");
@@ -995,7 +1037,7 @@ class VulkanApplication {
 			vkBindImageMemory(device, image, imageMemory, 0);
 		}
 
-		void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+		void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount) {
 			VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
 			VkImageMemoryBarrier barrier{};
@@ -1009,7 +1051,7 @@ class VulkanApplication {
 			barrier.subresourceRange.baseMipLevel = 0;
 			barrier.subresourceRange.levelCount = 1;
 			barrier.subresourceRange.baseArrayLayer = 0;
-			barrier.subresourceRange.layerCount = 1;
+			barrier.subresourceRange.layerCount = layerCount;
 
 			VkPipelineStageFlags sourceStage;
 			VkPipelineStageFlags destinationStage;
@@ -1044,7 +1086,7 @@ class VulkanApplication {
 			endSingleTimeCommands(commandBuffer);
 		}
 
-		void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+		void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount = 1) {
 			VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 			VkBufferImageCopy region{};
 			region.bufferOffset = 0;
@@ -1054,7 +1096,7 @@ class VulkanApplication {
 			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			region.imageSubresource.mipLevel = 0;
 			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
+			region.imageSubresource.layerCount = layerCount;
 
 			region.imageOffset = { 0, 0, 0 };
 			region.imageExtent = {

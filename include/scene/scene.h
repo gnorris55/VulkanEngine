@@ -58,11 +58,9 @@ public:
         vkCmdBindIndexBuffer(commandBuffer, poolSet->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(poolSet->indices.size()), 16, 0, 0, 0);
 
-        //updatePlaneUniforms(ubo, swapChainExtent, uniformBuffersMapped, currentFrame, glm::vec3(0, 0, 0));
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets);
         vkCmdBindIndexBuffer(commandBuffer, plane.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(plane.indices.size()), 1, 0, 0, 16);
-
 
     }
 
