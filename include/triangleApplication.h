@@ -39,22 +39,23 @@ const std::string MODEL_PATH = RESOURCES_PATH"models/sphere/sphere.obj";
 const std::string TEXTURE_PATH = RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg";
 const std::string TEXTURE_PATH2 = RESOURCES_PATH"models/sphere/poolBallTextures/Ball10.jpg";
 std::vector<std::string> texturePaths = {
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball1.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball9.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball10.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball2.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball8.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball3.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball11.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball4.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball12.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball5.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball13.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball6.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball14.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball7.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/Ball15.jpg",
-	RESOURCES_PATH"models/sphere/poolBallTextures/BallCue.jpg"
+	RESOURCES_PATH"models/sphere/poolTextures/Ball1.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball9.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball10.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball2.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball8.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball3.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball11.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball4.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball12.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball5.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball13.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball6.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball14.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball7.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/Ball15.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/BallCue.jpg",
+	RESOURCES_PATH"models/sphere/poolTextures/poolSurface.jpg"
 };
 //const std::string TEXTURE_PATH = RESOURCES_PATH"models/plane/poolSurface.jpg";
 
