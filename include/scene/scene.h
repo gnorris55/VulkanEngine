@@ -88,13 +88,10 @@ public:
         getFPS(frameCount, currentTime);
 
         //update physics
+        processInput(window);
         simulatePhysics(currentTime, 0.01);
 
-
-        processInput(window);
-
         lastTime = currentTime;
-
         //std::cout << glm::to_string(camera.Position) << std::endl;
     }
 
@@ -129,6 +126,7 @@ private:
     Light* light;
     PoolSet* poolSet;
     Plane plane = Plane(glm::vec3(0, 1, 0), glm::vec3(0.0, 1, 0));
+    bool shot = false;
 
     float deltaTime = 0.0f;
     float lastTime = 0.0f;
@@ -187,10 +185,13 @@ private:
        
         float movement_speed = deltaTime * 5.0;
         
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            poolSet->cueBall->addForce(glm::vec3(0, 0, 25));
-            std::cout << "force" << std::endl;
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !shot) {
+            shot = true;
+            std::cout << "we have a SHOT" << std::endl;
+            poolSet->cueBall->addForce(glm::vec3(0, 0, 2000));
         }
+        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE && shot) 
+            shot = false;
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
