@@ -18,14 +18,18 @@ public:
         dynamicsWorld->addRigidBody(object->getRigidBody());
     }
 
+    void addConstraint(btTypedConstraint* constraint) {
+        dynamicsWorld->addConstraint(constraint);
+    }
+
 
     void simulationLoop(double time_step, bool debugging = false) {
         // 5. Simulation loop
         dynamicsWorld->stepSimulation(time_step, 1);
 
 
-        if (debugging)
-            dynamicsWorld->debugDrawWorld();
+        //if (debugging)
+            //dynamicsWorld->debugDrawWorld();
 
 
         for (int i = 0; i < objects.size(); i++) {

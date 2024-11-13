@@ -11,8 +11,12 @@
 #include <scene/camera.h>
 #include <scene/light.h>
 #include <objects/poolBalls.h>
+#include <objects/cube.h>
 #include <objects/plane.h>
+#include <objects/poolCue.h>
 #include <scene/physicsManager.h>
+#include <objects/constraintEntity.h>
+
 
 class Scene {
 
@@ -21,6 +25,7 @@ public:
     //TODO: probably going to be more lights
     Scene(unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, Camera *camera, Light *light) : camera(camera), light(light) {
         poolSet = new PoolSet(15, glm::vec3(0, 2, 0));
+        
         addPhysicsObjects();
     }
 
@@ -32,11 +37,12 @@ public:
     void loadModels(VkDevice& device, VkCommandPool& commandPool, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue) {
         poolSet->loadModel(device, commandPool, physicalDevice, graphicsQueue);
         plane.loadModel(device, commandPool, physicalDevice, graphicsQueue);
+        poolCue.loadModel(device, commandPool, physicalDevice, graphicsQueue);
+        cube.loadModel(device, commandPool, physicalDevice, graphicsQueue);
     }
 
     // where we add our buffers for our objects
     void draw(VkCommandBuffer &commandBuffer, VkPipelineLayout &pipelineLayout, std::vector<VkDescriptorSet> &descriptorSets, uint32_t &currentFrame, VkExtent2D swapChainExtent, std::vector<void*>& uniformBuffersMapped) {
-
 
         UniformBufferObject ubo{};
         ubo.model = glm::mat4(1.0f);
@@ -48,6 +54,8 @@ public:
         // TODO: change vertex buffer implementation, opengl way is slow
         VkBuffer vertexBuffers[] = { poolSet->vertexBuffer};
         VkBuffer vertexBuffers2[] = { plane.vertexBuffer};
+        VkBuffer vertexBuffers3[] = { poolCue.vertexBuffer};
+        VkBuffer vertexBuffers4[] = { cube.vertexBuffer };
 
         VkDeviceSize offsets[] = {0};
 
@@ -58,9 +66,17 @@ public:
         vkCmdBindIndexBuffer(commandBuffer, poolSet->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(poolSet->indices.size()), 16, 0, 0, 0);
 
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, plane.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(plane.indices.size()), 1, 0, 0, 16);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers4, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cube.indices.size()), 2, 0, 0, 16);
+
+        //vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers2, offsets);
+        //vkCmdBindIndexBuffer(commandBuffer, plane.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        //vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(plane.indices.size()), 1, 0, 0, 16);
+        
+        //vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers3, offsets);
+        //vkCmdBindIndexBuffer(commandBuffer, poolCue.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        //vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(poolCue.indices.size()), 1, 0, 0, 16);
 
     }
 
@@ -75,7 +91,8 @@ public:
 
         }
         ubo.instanceTransform[15] = poolSet->cueBall->getTransform();
-        ubo.instanceTransform[16] = plane.getTransform();
+        ubo.instanceTransform[16] = constrainEntity.cube1.getTransform();
+        ubo.instanceTransform[17] = constrainEntity.cube2.getTransform();
         ubo.proj[1][1] *= -1;
 
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -89,7 +106,8 @@ public:
 
         //update physics
         processInput(window);
-        simulatePhysics(currentTime, 0.01);
+
+        simulatePhysics(currentTime, 1/60.0f);
 
         lastTime = currentTime;
         //std::cout << glm::to_string(camera.Position) << std::endl;
@@ -100,6 +118,8 @@ public:
 
         poolSet->cleanUp(device);
         plane.cleanUp(device);
+        poolCue.cleanUp(device);
+        cube.cleanUp(device);
     }
 
 
@@ -126,6 +146,11 @@ private:
     Light* light;
     PoolSet* poolSet;
     Plane plane = Plane(glm::vec3(0, 1, 0), glm::vec3(0.0, 1, 0));
+    PoolCue poolCue = PoolCue(glm::vec3(0, 1, 0));
+
+    Cube cube = Cube(glm::vec3(0, 5, 15), glm::vec3(1, 1, 1));
+    ConstraintEntity constrainEntity = ConstraintEntity(glm::vec3(1, 1, 1), &physicsManager);
+
     bool shot = false;
 
     float deltaTime = 0.0f;
@@ -140,7 +165,9 @@ private:
             physicsManager.addObject(&(poolSet->poolBalls[i]));
         }
         physicsManager.addObject(poolSet->cueBall);
-        physicsManager.addObject(&(plane));
+        physicsManager.addObject(&plane);
+        //physicsManager.addObject(&cube);
+
     }
 
     void getFPS(int& frameCount, float currentTime) {
@@ -182,16 +209,18 @@ private:
     glm::vec3 processInput(GLFWwindow* window)
     {
 
-       
+
         float movement_speed = deltaTime * 5.0;
-        
+        // TODO: fix physics not adding force when we are adding force
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !shot) {
             shot = true;
             std::cout << "we have a SHOT" << std::endl;
-            poolSet->cueBall->addForce(glm::vec3(0, 0, 2000));
+            poolSet->cueBall->addForce(glm::vec3(0, 0, 400));
+
         }
-        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE && shot) 
+        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE && shot) {
             shot = false;
+        }
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);

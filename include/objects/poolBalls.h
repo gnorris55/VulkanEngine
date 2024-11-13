@@ -16,7 +16,7 @@ class PoolBall : public Entity {
 
 private:
 
-	glm::mat4 transformMatrix = glm::mat4(1.0f);
+	//glm::mat4 transformMatrix = glm::mat4(1.0f);
 
 public:
 	PoolBall(glm::vec3 initialPosition) : Entity(initialPosition)  {
@@ -31,6 +31,8 @@ public:
 		fallShape->calculateLocalInertia(mass, fallInertia);
 		btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
 		this->rigidBody = new btRigidBody(fallRigidBodyCI);
+		//this->rigidBody->setFriction(0.02f);
+		//this->rigidBody->setRollingFriction(0.03f);
 	}
 
 };
@@ -42,9 +44,9 @@ public:
 	}
 
 	void addForce(glm::vec3 force) {
-		rigidBody->applyCentralForce(LMath::glmToBt(force));
-
+		this->rigidBody->applyCentralForce(LMath::glmToBt(force));
 	}
+
 	void createRigidBody() override {
 		btCollisionShape* fallShape = new btSphereShape(1.0);  // Box of size 1x1x1
 		btDefaultMotionState* fallMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), LMath::glmToBt(position)));
@@ -53,7 +55,7 @@ public:
 		fallShape->calculateLocalInertia(mass, fallInertia);
 		btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
 		this->rigidBody = new btRigidBody(fallRigidBodyCI);
-		rigidBody->setActivationState(DISABLE_DEACTIVATION);
+		this->rigidBody->setActivationState(DISABLE_DEACTIVATION);
 	}
 
 private:
@@ -124,6 +126,7 @@ public:
 
 		vkDestroyBuffer(device, vertexBuffer, nullptr);
 		vkFreeMemory(device, vertexBufferMemory, nullptr);
+		delete cueBall;
 	}
 
 	void loadModel(VkDevice& device, VkCommandPool& commandPool, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue) {

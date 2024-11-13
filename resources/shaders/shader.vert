@@ -6,7 +6,7 @@ layout (binding = 0) uniform UniformBufferObject {
     mat4 proj;
     vec4 lightPos;
     vec4 cameraPos;
-    mat4 instanceTransform[17];
+    mat4 instanceTransform[18];
 } ubo;
 
 layout (location = 0) in vec3 inPosition;
